@@ -1,6 +1,7 @@
 let start = 1545358816000;
 let end = 1545363016000;
-const formatTime = d3.timeFormat("%Y-%m-%d %H:%M:%S");
+// const formatTime = d3.time.format("%Y-%m-%d %H:%M:%S");
+const formatTime = time => time;
 const onChange = (from, to) => {
     return `From: ${formatTime(from)} to: ${formatTime(to)}`;
 }
