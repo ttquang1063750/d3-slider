@@ -63,10 +63,9 @@ class Slider{
             }else if(x - halfWidth < 0){
                 x = halfWidth;
             }
-            let dx = xScale.invert(x);
             wrapper.select(".drager").attr("cx", x);
             wrapper.select(".range-bar").attr("x", x - xScale(rangeBarWidth) / 2);
-            onChange(dx, dx + rangeBarWidth);
+            onChange(xScale.invert(x));``
         }))
         .attr("cx", xScale(rangeBarWidth) / 2);
         

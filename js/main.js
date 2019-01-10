@@ -1,16 +1,13 @@
 let start = 1545358816000;
 let end = 1545363016000;
-// const formatTime = d3.time.format("%Y-%m-%d %H:%M:%S");
-const formatTime = time => time;
-const onChange = (from, to) => {
-    return `From: ${formatTime(from)} to: ${formatTime(to)}`;
-}
 let slider = new Slider('body', {
     start: start,
     end: end,
     currentPoint: start,
     margin: { top: 10, right: 10, bottom: 10, left: 10 },
-    onChange: onChange,
+    onChange: (current) => {
+        return `Current: ${current}}`;
+    },
     formatTime: formatTime,
     rangeBarWidth: start + 60 * 60 * 1000
 });
