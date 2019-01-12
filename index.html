@@ -1,21 +1,82 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <title>Drag And Resizer</title>
+    <meta charset="utf-8">
     <style>
-    body {
-      position: fixed;
-      left: 0px;
-      right: 0px;
-      top: 0px;
-      bottom: 0px;
-      margin: 0px;
-    }
+        #chartContainer{
+            height: 300px; 
+            width: 90%;
+            margin: 0 auto;
+        }
+        .clock{
+            width: 25vw;
+            margin: 0 auto;
+        }
+        
+        .clock canvas{
+            margin: 0 auto;
+        }
     </style>
 </head>
-<body>
+<body>    
+    <div id="chartContainer"></div>   
+    <div class="clock">
+        <canvas id="canvas"> </canvas>
+    </div>
     <script src="js/libs/jquery-1.11.3.min.js"></script>
-    <script src="js/libs/d3.v5.min.js"></script>
-    <script src="js/slider.js"></script>
-    <script src="js/main.js"></script>
+    <script src="js/libs/canvasjs.min.js"></script>
+    <script src="js/drag-and-resizer.js"></script>
+    <script src="js/clock.js"></script>
+    <script>
+        let startAt = new Date(2018, 01, 18, 13, 05, 00).getTime();
+        let endAt = new Date(2018, 01, 18, 13, 10, 00).getTime();
+        let min = 5 * 60 * 1000;
+        let max = 15 * 60 * 1000;
+        let selector = document.getElementById('chartContainer');
+        let clock = new ClockComponent(document.getElementById('canvas'));
+        let drager = new DragAndResizer(selector, {
+            minRange:  min, 
+            maxRange: max,  
+            step: 5 * 60 * 1000, 
+            chartOptions:  {     
+                axisX:{
+                    labelFormatter: function (e) {
+                        return CanvasJS.formatDate( e.value, "hh:mm:ss");
+                    },
+                    labelAngle: -90,
+                    stripLines: [{
+                        showOnTop: true,
+                        startValue: new Date(2018, 01, 18, 13, 00, 00).getTime(),
+                        endValue: startAt,
+                        opacity: .2,
+                        color:'black'
+                    },
+                    {
+                        showOnTop: true,
+                        startValue: startAt,
+                        endValue: endAt,
+                        opacity: .2,
+                        color:'blue'
+                    }]
+                },
+                title: {
+                    text: "Try dragging column to reposition dataPoint",
+                },
+                data: [{
+                    type: "line",
+                    dataPoints: [
+                    { x: new Date(2018, 01, 18, 13, 00, 00).getTime(), y: 414 },
+                    { x: new Date(2018, 01, 18, 13, 20, 00).getTime(), y: 520 }
+                    ]
+                }]
+            },
+            onChange: (start, end) => {
+                clock.render((end - start) / 60000);
+            }
+        });
+        drager.render();
+        clock.render();
+    </script>
 </body>
 </html>
