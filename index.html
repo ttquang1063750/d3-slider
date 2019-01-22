@@ -2,17 +2,54 @@
 <html>
 <head>
     <style>
-    body {
-      position: fixed;
-      left: 0px;
-      right: 0px;
-      top: 0px;
-      bottom: 0px;
-      margin: 0px;
-    }
+        *{
+            box-sizing: border-box;
+        }
+        body {
+            position: fixed;
+            left: 0px;
+            right: 0px;
+            top: 0px;
+            bottom: 0px;
+            margin: 0px;
+        }
+        .wrapper{
+            background-color: rgb(76, 143, 123);
+            border: 1px solid #000;
+            padding: 10px 11px 13px 12px;
+            margin: 20px;
+            text-align: center;
+            color: white;
+        }
+
+        #slider{
+            background: transparent;
+        }
     </style>
 </head>
 <body>
+    <div class="wrapper">
+        <label for="start">
+            Start:
+            <input type="datetime-local" name="start" id="start">
+        </label>
+        <label for="current">
+            Current:
+            <input type="datetime-local" name="current" id="current">
+        </label>
+        <label for="end">
+            End:
+            <input type="datetime-local" name="end" id="end">
+        </label>
+        <button id="setDatetime">change</button>
+    </div>
+    <div class="wrapper" id="slider">
+        
+    </div>
+
+    <div class="wrapper">
+        <p id="currentDate"></p>
+    </div>
     <script src="js/libs/jquery-1.11.3.min.js"></script>
     <script src="js/libs/d3.v3.min.js"></script>
     <script src="js/slider.js"></script>

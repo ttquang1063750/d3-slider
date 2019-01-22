@@ -2,16 +2,15 @@ class Slider{
     constructor(selector, props) {
         this.selector = selector;
         this.props = props;
-        $(window).off('resize.d3-slider').on('resize.d3-slider', () => this.render());
-        this.render();
+        $(window).off('resize.d3-range-slider').on('resize.d3-range-slider', () => this.render());
     }
     
     destroy() {
-        $(window).off('resize.d3-slider');
+        $(window).off('resize.d3-range-slider');
     }
     
     render() {
-        const { start, end, currentPoint, rangeBarWidth, onChange, formatTime , margin } = this.props;
+        const { start, end, currentPoint, period, onChange, formatTime , margin } = this.props;
         const container = d3.select(this.selector);
         const draggerHeight = 22;
         const labelHeight = 20;
@@ -19,107 +18,168 @@ class Slider{
         const trackerHeight = 8;
         const spaceInsideTracker = 0;
         const spaceWithTracker = 0;
+        const rangeBarWidth = period + start;
+        let computedStyle = window.getComputedStyle(container.node(), null);
+        let containerPaddingLeft = parseInt(computedStyle.getPropertyValue('padding-left'));
+        let containerPaddingRight= parseInt(computedStyle.getPropertyValue('padding-right'));
+        let containerWidth = parseInt(computedStyle.getPropertyValue('width')) - containerPaddingLeft - containerPaddingRight;
+        let containerHeight = draggerHeight + panelHeight + labelHeight + trackerHeight + margin.top + margin.bottom;
         
-        let sliderWidth = container.node().clientWidth;
-        let sliderHeight = draggerHeight + panelHeight + labelHeight + trackerHeight + margin.top + margin.bottom;
+        let svg = container.selectAll('svg').data([null]);
+        // Update pattern
+        svg.attr('width', containerWidth).attr('height', containerHeight);
         
-        let svg = container.selectAll('svg').data([null]).enter().append('svg');
-        svg.attr('width', sliderWidth).attr('height', sliderHeight);
+        // Enter pattern
+        svg.enter().append('svg')
+        .attr('width', containerWidth).attr('height', containerHeight);
         
         /* 
         WRAPPER
         */
-        let wrapper = svg.selectAll('.svg-wrapper').data([null]).enter().append("g");
-        wrapper
+        let wrapper = svg.selectAll('.svg-wrapper').data([null]);
+        wrapper.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+        wrapper.enter().append("g")
         .attr("class", "svg-wrapper")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
         
-        sliderWidth = sliderWidth - margin.left - margin.right;
-        sliderHeight = sliderHeight - margin.top - margin.bottom;
+        let _width = containerWidth - margin.left - margin.right;
+        let _height = containerHeight - margin.top - margin.bottom;
         
-        const xScale = d3.scale.linear().domain([start, end]).range([0, sliderWidth]);
+        const xScale = d3.scale.linear().domain([start, end]).range([0, _width]);
         
         /* 
         GROUP TOP
         */
-        let groupTop = wrapper.selectAll('.svg-group-top').data([null]).enter().append("g");
-        
-        groupTop.attr("class", "svg-group-top")
+        let groupTop = wrapper.selectAll('.svg-group-top').data([null]);    
+        groupTop.attr("transform", "translate(0,0)");
+        groupTop.enter().append("g")
+        .attr("class", "svg-group-top")
         .attr("transform", "translate(0,0)");
         
-        let drager = groupTop.selectAll('.drager').data([null]).enter().append("circle");
-        
-        drager.attr("class", "drager")
-        .attr("fill", '#14679e')
-        .style("cursor", 'pointer')
-        .attr("cy", draggerHeight / 2)
-        .attr("r", draggerHeight / 2)
-        .call(d3.behavior.drag()
-        .on("drag", () => {
-            const halfWidth = xScale(rangeBarWidth) / 2;
-            let x = d3.event.x;
-            if(x + halfWidth  > sliderWidth){
-                x = sliderWidth - halfWidth;
-            }else if(x - halfWidth < 0){
-                x = halfWidth;
-            }
-            wrapper.select(".drager").attr("cx", x);
-            wrapper.select(".range-bar").attr("x", x - xScale(rangeBarWidth) / 2);
-            onChange(xScale.invert(x));``
-        }))
-        .attr("cx", xScale(rangeBarWidth) / 2);
-        
-        
-        // Tracker
-        let tracker = groupTop.selectAll('.tracker').data([null]).enter().append("rect");
-        
-        tracker.attr("class", "tracker")
+        // Rect tracker
+        groupTop.selectAll('.rect-tracker')
+        .data([null])
+        .attr("width", _width)
+        .enter().append("rect")
+        .attr("class", "rect-tracker")
         .attr("fill", '#ccc')
         .attr("x", 0)
         .attr("y", draggerHeight)
         .attr("height", trackerHeight)
-        .attr("width", sliderWidth);
+        .attr("width", _width);
         
-        
-        // Range bar
-        let rangeBar = groupTop.selectAll('.range-bar').data([null]).enter().append("rect");
-        rangeBar.attr("class", "range-bar")
-        .attr("fill", '#14679e')
-        .attr("y", draggerHeight + spaceInsideTracker)
-        .attr("height", trackerHeight - spaceInsideTracker * 2)
-        .attr("width", xScale(rangeBarWidth))
-        .attr("x", xScale(currentPoint));
-        
-        let panel = groupTop.selectAll('.panel').data([null]).enter().append("rect");
-        
-        panel.attr("class", "panel")
+        // Rect panel
+        groupTop.selectAll('.rect-panel')
+        .data([null])
+        .attr("width", _width - 2)
+        .enter().append("rect")
+        .attr("class", "rect-panel")
         .attr("fill", 'none')
         .attr("stroke", "#000")
         .attr("stroke-width", 1)
         .attr("x", 1)
         .attr("y", draggerHeight + trackerHeight + spaceWithTracker)
         .attr("height", panelHeight)
-        .attr("width", sliderWidth - 2);
+        .attr("width", _width - 2);
         
-        let panelTick = groupTop.selectAll('.panel-tick').data([null]).enter().append("rect");
+        let dx = 0;
+        let dragger = groupTop.selectAll('.dragger').data([null]);
+        dragger.attr("transform", "translate(" + xScale(currentPoint) + ",0)")
+        .call(d3.behavior.drag()
+        .on("dragstart", () => {
+            let x = d3.event.sourceEvent.x;
+            let draggerBoundRect = dragger.node().getBoundingClientRect();
+            dx = x - draggerBoundRect.x;
+        })
+        .on("drag", () => {
+            const barWidth = xScale(rangeBarWidth);
+            let x = d3.event.x - dx;
+            if(x + barWidth  > _width){
+                x = _width - barWidth;
+            }
+
+            if(x < 0){
+                x = 0;
+            }
+           
+            dragger.attr("transform", "translate(" + x + ",0)");
+            this.props.currentPoint = xScale.invert(x);
+            onChange(this.props.currentPoint);
+        }));
         
-        panelTick.attr("class", "panel-tick")
+        
+        dragger.enter().append("g")
+        .attr("class", "dragger")
+        .style("cursor", 'pointer')
+        .attr("transform", "translate(" + xScale(currentPoint) + ",0)")
+        .call(d3.behavior.drag()
+        .on("dragstart", () => {
+            let x = d3.event.sourceEvent.x;
+            let draggerBoundRect = dragger.node().getBoundingClientRect();
+            dx = x - draggerBoundRect.x;
+        })
+        .on("drag", () => {
+            const barWidth = xScale(rangeBarWidth);
+            let x = d3.event.x - dx;
+
+            if(x + barWidth  > _width){
+                x = _width - barWidth;
+            }
+
+            if(x < 0){
+                x = 0;
+            }
+           
+            dragger.attr("transform", "translate(" + x + ",0)");
+            this.props.currentPoint = xScale.invert(x);
+            onChange(this.props.currentPoint);
+        }));
+        
+        dragger.selectAll('circle')
+        .data([null])
+        .attr("cy", draggerHeight / 2)
+        .attr("r", draggerHeight / 2)
+        .attr("cx", xScale(rangeBarWidth) / 2)
+        .enter().append("circle")
+        .attr("fill", '#14679e')
+        .attr("cy", draggerHeight / 2)
+        .attr("r", draggerHeight / 2)
+        .attr("cx", xScale(rangeBarWidth) / 2);
+        
+        // Rect range bar
+        dragger.selectAll('.rect-range-bar')
+        .data([null])
+        .attr("width", xScale(rangeBarWidth))
+        .enter().append("rect")
+        .attr("class", "rect-range-bar")
+        .attr("fill", '#14679e')
+        .attr("y", draggerHeight + spaceInsideTracker)
+        .attr("height", trackerHeight - spaceInsideTracker * 2)
+        .attr("width", xScale(rangeBarWidth))
+        .attr("x", 0);
+        
+        //Vertical-line
+        groupTop.selectAll('.vertical-line')
+        .data([null])
+        .attr("x", _width / 2)
+        .enter().append("rect")
+        .attr("class", "vertical-line")
         .attr("fill", "#000")
+        .attr("width", 1)
         .attr("y", draggerHeight + trackerHeight + spaceWithTracker + 1)
         .attr("height", panelHeight - 1)
-        .attr("x", sliderWidth / 2)
-        .attr("width", 1);
+        .attr("x", _width / 2);
         
         /* 
         GROUP MIDDLE
         */
-        let groupBottom= wrapper.selectAll('.svg-group-bottom').data([null]).enter().append("g");
+        let groupBottom= wrapper.selectAll('.svg-group-bottom').data([null]);
+        groupBottom.attr("transform", "translate(0, " + _height + ")");
+        groupBottom.enter().append("g")
+        .attr("class", "svg-group-bottom")
+        .attr("transform", "translate(0, " + _height + ")");
         
-        groupBottom.attr("class", "svg-group-bottom")
-        .attr("transform", "translate(0, " + (sliderHeight) + ")");
-        
-        
-        let tickLabel = groupBottom.selectAll('.tick-label')
+        groupBottom.selectAll('text')
         .data([
             {
                 text: start,
@@ -127,24 +187,26 @@ class Slider{
                 x: 0
             },
             {
-                text: xScale.invert(sliderWidth / 2),
+                text: xScale.invert(_width / 2),
                 anchor: 'middle',
-                x: sliderWidth / 2
+                x: _width / 2
             },
             {
                 text: end,
                 anchor: 'end',
-                x: sliderWidth
+                x: _width
             }
-        ]).enter().append("text");
-        
-        tickLabel.attr("class", "tick-label")
+        ])
+        .style("text-anchor", d => d.anchor)
+        .attr("x", d => d.x)
+        .text(d => formatTime(d.text))
+        .enter().append("text")
         .attr("y", 0)
         .attr("dy", "0")
         .style("font-size", "14px")
         .style("pointer-events", "none")
-        .attr("x", d => d.x)
         .style("text-anchor", d => d.anchor)
+        .attr("x", d => d.x)
         .text(d => formatTime(d.text));
     }
 }
